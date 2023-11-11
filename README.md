@@ -1,38 +1,28 @@
-Role Name
-=========
+Kubernetes Cluster Setup with HAProxy and Keepalived
+This repository contains an Ansible playbook for setting up a high-availability Kubernetes cluster on Ubuntu. The cluster includes master nodes, a worker node, and HAProxy nodes with Keepalived for load balancing.
 
-A brief description of the role goes here.
+Prerequisites
+Ensure the following collections are installed:
 
-Requirements
-------------
+ansible.posix version 1.5.4
+community.general version 8.0.1
+community.kubernetes version 2.0.1
+kubernetes.core version 2.4.0
+Inventory Setup
+Node Configuration:
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+| Node Type | Hostname  | IP Address    |
+|-----------|-----------|---------------|
+| Master    | master1   | 192.168.1.190 |
+| Master    | master2   | 192.168.1.191 |
+| Master    | master3   | 192.168.1.192 |
+| Worker    | worker1   | 192.168.1.193 |
+| HAProxy   | haproxy1  | 192.168.1.194 |
+| HAProxy   | haproxy2  | 192.168.1.195 |
+| Elastic IP| N/A       | 192.168.1.199 |
 
-Role Variables
---------------
+Adjust the inventory to match your environment.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+Usage
+Customize the variables as needed and run the playbook to set up the cluster.
 
-Dependencies
-------------
-
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
-
-Example Playbook
-----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
-
-License
--------
-
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
