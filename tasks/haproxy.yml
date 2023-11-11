@@ -1,0 +1,36 @@
+---
+    - name: install haproxy && keepalive
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+          - haproxy
+          - keepalived
+    - name: Deploy the check_apiserver.sh script
+      ansible.builtin.template:
+        src: ./templates/check_apiserver.sh.j2
+        dest: /etc/keepalived/check_apiserver.sh
+      tags:
+        - deploy_script
+    - name: Set execute permissions for check_apiserver.sh
+      ansible.builtin.file:
+        path: /etc/keepalived/check_apiserver.sh
+        mode: '+x'
+      tags:
+       - set_permissions
+
+    - name: configure the keepalived
+      ansible.builtin.template:
+        src: ./templates/keepalived.conf.j2
+        dest: /etc/keepalived/keepalived.conf
+      notify:
+       - Restart keepalived
+
+    - name: configure the haproxy
+      ansible.builtin.template:
+        src: ./templates/haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+      notify:
+       - Restart haproxy
+
+    

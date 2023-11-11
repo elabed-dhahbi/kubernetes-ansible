@@ -1,0 +1,9 @@
+[haproxy]
+haproxy1
+haproxy2
+
+[kubernetes]
+master1
+master2
+master3
+worker

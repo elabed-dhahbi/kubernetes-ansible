@@ -1,0 +1,30 @@
+---
+- name: kubernetes cluster install
+  hosts: all
+  become: yes
+  vars_files:
+   - vars/main.yml
+
+  handlers:
+    - import_tasks: handlers/haproxy.yml
+
+  pre_tasks:
+    - name: Update_cache if needed
+      apt: update_cache=true cache_valid_time=3600
+
+  tasks:
+   - import_tasks: tasks/haproxy.yml
+     when: ansible_hostname in ['haproxy1', 'haproxy2']
+
+   - import_tasks: tasks/haproxy_pre_check.yaml
+     when: ansible_hostname in ['haproxy1', 'haproxy2']
+
+   - import_tasks: tasks/main.yml
+     when: ansible_hostname in ['master1', 'master2', 'master3','worker1']
+
+   - import_tasks: tasks/kubeadm.yml
+     when: ansible_hostname == 'master1'
+
+   - import_tasks: tasks/cilium.yml
+     when: ansible_hostname == 'master1'
+

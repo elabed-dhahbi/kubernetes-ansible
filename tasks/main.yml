@@ -1,0 +1,109 @@
+--- 
+    - name: Disable and stop FW
+      ansible.builtin.service: name=ufw state=stopped enabled=no
+      tags:
+       - k8s_prerequisites
+
+    - name: Disable swap
+      ansible.builtin.command: sh -c "swapoff -a && sed -i '/swap/d' /etc/fstab"
+      when: ansible_swaptotal_mb > 0
+      tags:
+       - k8s_prerequisites
+
+
+    - name: Configure containerd module
+      community.general.modprobe:
+        name: "{{ item }}"
+      with_items:
+        - overlay
+        - br_netfilter
+    - name: Add lines to /etc/sysctl.d/kubernetes.conf
+      ansible.builtin.sysctl:
+         name: "{{ item.key }}"
+         value: "{{ item.value }}"
+      with_dict:
+        net.bridge.bridge-nf-call-ip6tables: 1
+        net.bridge.bridge-nf-call-iptables: 1
+        net.ipv4.ip_forward: 1
+
+
+    - name: Install container runtime
+      ansible.builtin.apt:
+       name:
+        - containerd
+        - apt-transport-https
+      tags:
+        k8s_prerequisites
+
+    - name: Configure containerd endpoint
+      ansible.builtin.copy:
+        dest: /etc/crictl.yaml
+        content: |
+          runtime-endpoint: "unix:///run/containerd/containerd.sock"
+          timeout: 0
+          debug: false
+
+    - name: Install apt-transport-https ca-certificates curl
+      ansible.builtin.apt:
+       name:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+    - name: Check if keyring.gpg exist or not
+      ansible.builtin.stat:
+          path: /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+      register: file_stat
+
+    - name: Download GPG Keyring
+      ansible.builtin.shell: curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+      when: not file_stat.stat.exists
+      tags:
+        - download_gpg_key
+
+    - name: Add Kubernetes APT Repository
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+        filename: /etc/apt/sources.list.d/kubernetes
+      tags:
+        - add_apt_repository
+
+    - name: update apt package
+      ansible.builtin.apt: update_cache=yes cache_valid_time=3600
+
+
+    - name: install kubelet kubeadm and kubectl
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      register: result
+      until: result is succeeded
+      retries: 5
+      delay: 10
+      with_items: "{{ packages }}"
+      tags:
+        - install_packages
+
+    - name: Create containerd directory
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+
+    - name: Configure containerd file
+      ansible.builtin.shell: containerd config default | tee /etc/containerd/config.toml
+      tags:
+         - configure_containerd
+
+    - name: Ensure SystemdCgroup is true in /etc/containerd/config.toml
+      ansible.builtin.lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: '^(\s*)SystemdCgroup = false'  # Match the existing line's indentation
+        line:  '            SystemdCgroup = true'
+      tags:
+         - containerd_config
+
+    - name: Restart containerd
+      ansible.builtin.service:
+        name: containerd
+        state: restarted
+

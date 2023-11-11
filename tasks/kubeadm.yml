@@ -1,0 +1,29 @@
+---
+   - name: check if Kubernetes is already initialized
+     ansible.builtin.command: kubectl cluster-info
+     register: kubectl_outptu
+     ignore_errors: true
+
+   - name: skip kubadm if kubernetes is already initialized
+     ansible.builtin.meta: end_play
+     when: '"kubernetes controle plane" in kubectl_output.stdout'
+
+   - name: started and enable the packages
+     ansible.builtin.service:
+         name: "{{ item }}"
+         state: started
+         enabled: true
+     with_items:
+       - kubelet
+       - containerd
+     tags:
+         - start_enable
+   - name: Run kubeadm init
+     ansible.builtin.shell: kubeadm init --control-plane-endpoint={{ control_plane_endpoint }} --upload-certs  --pod-network-cidr={{ pod_network_cidr }} --skip-phases=addon/kube-proxy
+     register: kubeadm_init_output
+     ignore_errors: yes  # Handle errors in subsequent tasks
+
+   - name: Print kubeadm init output
+     ansible.builtin.debug:
+       var: kubeadm_init_output.stdout_lines
+

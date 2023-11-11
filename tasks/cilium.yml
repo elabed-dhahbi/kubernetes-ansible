@@ -1,0 +1,49 @@
+---
+    - name: Installing helm
+      ansible.builtin.command: snap install helm --classic
+    - name: Installing  Clium CLI
+      ansible.builtin.get_url:
+        url: "https://github.com/cilium/cilium-cli/releases/download/{{ CILIUM_CLI_VERSION }}/cilium-linux-{{ CLI_ARCH }}.tar.gz"
+        dest: "{{ download_dir }}/cilium-linux-{{ CLI_ARCH }}.tar.gz"
+        checksum: "{{ cilium_checksum }}"
+    - name: Expand cilium
+      ansible.builtin.unarchive:
+        src: "{{ download_dir }}/cilium-linux-{{ CLI_ARCH }}.tar.gz"
+        dest: "/usr/local/bin"
+        remote_src: true
+   
+    - name: Add Repository to HELM
+      kubernetes.core.helm_repository:
+        name: cilium
+        repo_url: "https://helm.cilium.io/"
+        state: present
+
+    - name: Install Helm Chart
+      kubernetes.core.helm:
+        name: cilium
+        chart_ref: cilium/cilium
+        chart_version: 1.14.3
+        release_namespace: kube-system
+        state: present
+        values:
+          kubeProxyReplacement: strict
+          k8sServiceHost: "{{ api_server_ip }}"
+          k8sServicePort: 6443
+
+    - name: Validate that Cilium has been properly Installed
+      ansible.builtin.command: cilium status --wait
+      register: cilium_status
+      ignore_errors: yes  # Handle errors in subsequent tasks
+
+    - name: Print Cilium status
+      debug:
+        var: cilium_status.stdout_lines
+
+    - name: Validate that Cluster has proper connectivity
+      ansible.builtin.command: cilium connectivity test
+      register: cilium_connectivity
+      ignore_errors: yes  # Handle errors in subsequent tasks
+
+    - name: Print Cilium Connectivity
+      debug:
+        var: cilium_connectivity.stdout_lines

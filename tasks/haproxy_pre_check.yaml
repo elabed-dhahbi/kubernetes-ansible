@@ -1,0 +1,7 @@
+---
+   - name: wait for haproxy1 to be Up
+     wait_for:
+       host: haproxy1
+       port:  6443
+       state: started
+       timeout: 60

@@ -1,0 +1,17 @@
+api_server_ip: "192.168.1.199"
+kmaster1: "192.168.1.190"
+kmaster2: "192.168.1.191"
+kmaster3: "192.168.1.192"
+control_plane_endpoint: "192.168.1.199:6443"
+advertise_address: "192.168.1.190"
+pod_network_cidr: "10.255.0.0/16"
+CILIUM_CLI_VERSION: "v0.15.11"
+CLI_ARCH: "amd64"
+download_dir: "/tmp"
+cilium_checksum: sha256:5580835cd4f1e4e0aeaaef26de9887ccdb00803b7ef57f57969a0ceda1656c6c
+
+
+packages:
+   - kubectl
+   - kubelet
+   - kubeadm
